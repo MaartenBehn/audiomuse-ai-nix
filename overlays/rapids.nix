@@ -269,6 +269,33 @@ let
         sed -i 's|/build/[^;"]*/include|${pkg}/include|g' "$f"
       done
     '';
+
+  # Checks for the packages we define ourselves below are disabled here, scoped
+  # to those packages only.
+  #
+  # These used to be switched off by a wrapper around buildPythonPackage in
+  # overlays/python.nix that applied to every Python package in nixpkgs. That
+  # wrapper added a prePhase to each derivation, which changed the output hash
+  # of the entire Python package set and made all of it miss the binary cache
+  # (~1600 extra source builds). The RAPIDS/CUDA bindings genuinely cannot run
+  # their test suites or import checks in the sandbox (no GPU), so they opt out
+  # explicitly; everything from nixpkgs keeps its upstream, cached derivation.
+  #
+  # Mirrors the old wrapper exactly: it unset doCheck/doInstallCheck and
+  # no-op'd pytestCheckPhase/pythonImportsCheckPhase. It did not disable the
+  # runtime-deps or conflict checks, so those stay on.
+  buildPythonPackageNoChecks =
+    args:
+    final.python312Packages.buildPythonPackage (
+      args
+      // {
+        doCheck = false;
+        doInstallCheck = false;
+        dontUsePytestCheck = true;
+        dontUsePythonImportsCheck = true;
+      }
+    );
+
 in
 {
   # ==========================================================================
@@ -596,7 +623,7 @@ in
   # ==========================================================================
   python312Packages = prev.python312Packages // {
     # rapids-build-backend - PEP 517 build backend for RAPIDS packages
-    rapids-build-backend = final.python312Packages.buildPythonPackage {
+    rapids-build-backend = buildPythonPackageNoChecks {
       pname = "rapids-build-backend";
       version = "0.3.3";
       format = "pyproject";
@@ -628,7 +655,7 @@ in
     };
 
     # cuda-pathfinder - CUDA component path discovery (pure Python)
-    cuda-pathfinder = final.python312Packages.buildPythonPackage {
+    cuda-pathfinder = buildPythonPackageNoChecks {
       pname = "cuda-pathfinder";
       version = "12.9.5";
       format = "pyproject";
@@ -649,7 +676,7 @@ in
     };
 
     # cuda-bindings - Python bindings for CUDA APIs
-    cuda-bindings = final.python312Packages.buildPythonPackage {
+    cuda-bindings = buildPythonPackageNoChecks {
       pname = "cuda-bindings";
       version = "12.9.5";
       format = "pyproject";
@@ -706,7 +733,7 @@ in
     };
 
     # cuda-python - Meta package combining cuda-bindings and cuda-pathfinder
-    cuda-python = final.python312Packages.buildPythonPackage {
+    cuda-python = buildPythonPackageNoChecks {
       pname = "cuda-python";
       version = "12.9.5";
       format = "pyproject";
@@ -732,7 +759,7 @@ in
     };
 
     # rmm Python bindings
-    rmm = final.python312Packages.buildPythonPackage rec {
+    rmm = buildPythonPackageNoChecks rec {
       pname = "rmm";
       version = rapidsVersion;
       format = "pyproject";
@@ -810,7 +837,7 @@ in
     };
 
     # pylibraft Python bindings
-    pylibraft = final.python312Packages.buildPythonPackage rec {
+    pylibraft = buildPythonPackageNoChecks rec {
       pname = "pylibraft";
       version = rapidsVersion;
       format = "pyproject";
@@ -890,7 +917,7 @@ in
     };
 
     # cuvs Python bindings
-    cuvs = final.python312Packages.buildPythonPackage rec {
+    cuvs = buildPythonPackageNoChecks rec {
       pname = "cuvs";
       version = rapidsVersion;
       format = "pyproject";
@@ -982,7 +1009,7 @@ in
     };
 
     # cuml Python bindings
-    cuml = final.python312Packages.buildPythonPackage rec {
+    cuml = buildPythonPackageNoChecks rec {
       pname = "cuml";
       version = rapidsVersion;
       format = "pyproject";

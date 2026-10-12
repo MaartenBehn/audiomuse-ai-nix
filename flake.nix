@@ -2,7 +2,7 @@
   description = "AudioMuse-AI — AI-powered music analysis and playlist generation";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/master";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs = { self, nixpkgs }:
@@ -11,20 +11,17 @@
     lib = nixpkgs.lib;
 
     # Individual overlay files
-    pythonOverlay = import ./overlays/python.nix;
     rapidsOverlay = import ./overlays/rapids.nix;
     packagesOverlayGpu = import ./overlays/packages.nix { gpuSupport = true; };
     packagesOverlayCpu = import ./overlays/packages.nix { gpuSupport = false; };
 
     # Composed overlays for consumers
     nvidiaOverlay = lib.composeManyExtensions [
-      pythonOverlay
       rapidsOverlay
       packagesOverlayGpu
     ];
 
     cpuOverlay = lib.composeManyExtensions [
-      pythonOverlay
       packagesOverlayCpu
     ];
 

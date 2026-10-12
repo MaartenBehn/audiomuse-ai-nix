@@ -16,7 +16,13 @@ let
       hash = "sha256-lBW5ySO6xJPVxo1VrlXEKJFTwj+fR4Qik03mGsuvTAE=";
     };
 
-    # Binary wheel, no build deps needed
+    # Prebuilt manylinux wheel: patchelf it against the Nix C++ runtime.
+    # Without this the extension module cannot resolve libstdc++.so.6, so
+    # `import voyager` fails both in the import check and at runtime.
+    nativeBuildInputs = [ final.autoPatchelfHook ];
+    buildInputs = [ final.stdenv.cc.cc.lib ];
+
+    # Binary wheel, nothing to compile
     propagatedBuildInputs = with final.python312Packages; [ numpy ];
 
     pythonImportsCheck = [ "voyager" ];
