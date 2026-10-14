@@ -181,8 +181,7 @@ in
     systemd.services =
       let
         commonEnv = {
-          AUDIOMUSE_CONTROL_HOST = cfg.host;
-          AUDIOMUSE_CONTROL_PORT = toString cfg.port;
+          FLASK_BUILTIN_HTTPS = toString false;
 
           # Database - use unix socket for NixOS peer auth
           POSTGRES_USER =  cfg.database.user;
