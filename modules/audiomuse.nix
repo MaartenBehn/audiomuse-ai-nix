@@ -230,18 +230,18 @@ in
           DATA_DIR = cfg.dataDir;
           TEMP_DIR = "${cfg.dataDir}/temp_audio";
 
-          # Models - individual paths (code defaults to /app/model/ Docker paths)
           MODELS_PATH = "${cfg.modelsPackage}/models";
           EMBEDDING_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_embedding.onnx";
           PREDICTION_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_prediction.onnx";
-          # Upstream v2.1.0 defaults CLAP_AUDIO_MODEL_PATH to model_epoch_36.onnx
-          # (the new distilled student), but that file is not in the v4.0.0-model
-          # release — pin to the teacher (clap_audio_model.onnx) which is shipped.
           CLAP_AUDIO_MODEL_PATH = "${cfg.modelsPackage}/models/clap_audio_model.onnx";
           CLAP_TEXT_MODEL_PATH = "${cfg.modelsPackage}/models/clap_text_model.onnx";
-          
+          CLAP_SAE_MODEL_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_decoder.onnx";
+          CLAP_SAE_ENCODER_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_encoder.onnx";
+          NEURAL_FINGERPRINT_MODEL_PATH = "${cfg.modelsPackage}/models/neural_fingerprint.onnx"; 
+          NEURAL_FINGERPRINT_CODEBOOK_PATH = "${cfg.modelsPackage}/models/neural_fingerprint_pq.npz";
+  
           # Lyrics models extracted into models/
-          #LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
+          LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
           HF_HOME = "${cfg.modelsPackage}/cache/huggingface";
           HF_HUB_OFFLINE = "1";
           TRANSFORMERS_OFFLINE = "1";

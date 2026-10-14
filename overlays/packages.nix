@@ -174,48 +174,75 @@ in
     };
   };
 
-  # AudioMuse-AI ONNX models (v4.0.0-model release)
-  # Note: danceability/mood_* models were dropped upstream in v4.0.0; the
-  # musicnn embedding/prediction models were renamed.
   audiomuse-ai-models = final.stdenvNoCC.mkDerivation {
     pname = "audiomuse-ai-models";
-    version = "4.0.0";
+    version = "5.0.0";
 
     dontUnpack = true;
 
     # MusicNN (renamed in v4.0.0-model)
     musicnn_embedding = final.fetchurl {
-      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v4.0.0-model/musicnn_embedding.onnx";
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/musicnn_embedding.onnx";
       hash = "sha256-pIrYh5UKVXrvu03N31itSAIhP/X8b7Ue2jUHzXl7ubA=";
     };
     musicnn_prediction = final.fetchurl {
-      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v4.0.0-model/musicnn_prediction.onnx";
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/musicnn_prediction.onnx";
       hash = "sha256-DU543UPGEK7IjAmeQfSolpeX2lrCYS6myiH6qeGkKPM=";
     };
 
-    # CLAP teacher models (the v2.1.0 default points at model_epoch_36.onnx which
-    # isn't released; we ship the teacher and pin CLAP_AUDIO_MODEL_PATH in the module)
-    clap_audio = final.fetchurl {
-      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v4.0.0-model/clap_audio_model.onnx";
-      hash = "sha256-NBjHoJd4fIYzxlkQ/jVXcHHnMIS9LO6t7BnI+mC7KXY=";
+    fingerprint = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/neural_fingerprint.onnx";
+      hash = "sha256-DU543UPGEK7IjAmeQfSolpeX2lrCYS6myiH6qeGkKPM=";
     };
-    clap_text = final.fetchurl {
-      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v4.0.0-model/clap_text_model.onnx";
-      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    fingerprint_pq = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/neural_fingerprint_pq.npz";
+      hash = "sha256-DU543UPGEK7IjAmeQfSolpeX2lrCYS6myiH6qeGkKPM=";
     };
 
-    # HuggingFace models (BERT, RoBERTa, etc.)
     huggingface_models = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v4.0.0-model/huggingface_models.tar.gz";
       hash = "sha256-AqeNbkI0BMcnEWj3QPF+Q9vBCUf3Rt/EIFZwinRsyz0=";
     };
 
-    # Lyrics analysis model bundle (new in v4.0.0-model)
-    lyrics_model = final.fetchurl {
-      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v4.0.0-model/lyrics_model.tar.gz";
-      hash = "sha256-mnS/mSV6xrQD+10FVEoO4yZ1i+2ybaSYTxIiIZMZUpY=";
+    clap_audio = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI-DCLAP/releases/download/v1/model_epoch_36.onnx";
+      hash = "sha256-NBjHoJd4fIYzxlkQ/jVXcHHnMIS9LO6t7BnI+mC7KXY=";
+    };
+    clap_audio_data = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI-DCLAP/releases/download/v1/model_epoch_36.onnx.data";
+      hash = "sha256-NBjHoJd4fIYzxlkQ/jVXcHHnMIS9LO6t7BnI+mC7KXY=";
     };
 
+    clap_text = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/clap_text_model.onnx";
+      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    };
+
+    sea_encode = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI-SAE/releases/download/v1/dclap_sae_k20_d1024_best_encoder.onnx";
+      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    };
+
+    sea_decode = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI-SAE/releases/download/v1/dclap_sae_k20_d1024_best_decoder.onnx";
+      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    };
+
+    whisper_models = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/lyrics_model_whisper.tar.gz";
+      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    };
+
+    silero_models = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/lyrics_model_silero_vad.tar.gz";
+      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    };
+
+    gte_models = final.fetchurl {
+      url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/lyrics_model_gte_vnni.tar.gz";
+      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+    };
+    
     nativeBuildInputs = [ final.gnutar final.gzip ];
 
     installPhase = ''
@@ -223,21 +250,25 @@ in
 
       mkdir -p $out/models
 
-      # MusicNN
       cp $musicnn_embedding $out/models/musicnn_embedding.onnx
       cp $musicnn_prediction $out/models/musicnn_prediction.onnx
 
-      # CLAP
-      cp $clap_audio $out/models/clap_audio_model.onnx
-      cp $clap_text $out/models/clap_text_model.onnx
+      cp $fingerprint $out/models/neural_fingerprint.onnx
+      cp $fingerprint_pq $out/models/neural_fingerprint_pq.npz
 
-      # HuggingFace cache
       mkdir -p $out/cache/huggingface
       tar -xzf $huggingface_models -C $out/cache/huggingface
 
-      # Lyrics models — extract into the same dir AudioMuse-AI's
-      # LYRICS_MODEL_DIR points at
-      tar -xzf $lyrics_model -C $out/models
+      cp $clap_audio $out/models/model_epoch_36.onnx
+      cp $clap_audio_data $out/models/model_epoch_36.onnx.data
+      cp $clap_text $out/models/clap_text_model.onnx
+      
+      cp $sea_encode $out/models/dclap_sae_k20_d1024_best_encoder.onnx
+      cp $sea_decode $out/models/dclap_sae_k20_d1024_best_decoder.onnx
+
+      tar -xzf $whisper_models -C $out/models
+      tar -xzf $silero_models -C $out/models
+      tar -xzf $gte_models -C $out/models
 
       runHook postInstall
     '';
