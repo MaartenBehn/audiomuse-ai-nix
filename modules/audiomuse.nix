@@ -140,6 +140,18 @@ in
         description = "Redis port for job queue";
       };
     };
+
+    mediaServer = {
+      jellyfin = {
+        enable = mkEnableOption "Use Jellyfin as Media server";
+
+        url = mkOption {
+          type = types.str;
+          default = "http://127.0.0.1:8096";
+          description = "http://YOUR_JELLYFIN_IP:8096";
+        };
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -188,7 +200,10 @@ in
           POSTGRES_PASSWORD = ""; 
           POSTGRES_HOST = cfg.database.host;
           POSTGRES_PORT = toString cfg.database.port;
-          POSTGRES_DB =  cfg.database.name;
+          POSTGRES_DB = cfg.database.name;
+
+          MEDIASERVER_TYPE = lib.mkIf cfg.mediaServer.jellyfin.enable "jellyfin";
+          JELLYFIN_URL = cfg.mediaServer.jellyfin.url;
 
           # Redis
           REDIS_HOST = cfg.redis.host;
@@ -196,7 +211,6 @@ in
           REDIS_URL = "redis://${cfg.redis.host}:${toString cfg.redis.port}";
 
           # Paths
-          MUSIC_FOLDER = cfg.musicDir;
           DATA_DIR = cfg.dataDir;
           TEMP_DIR = "${cfg.dataDir}/temp_audio";
 
@@ -209,8 +223,9 @@ in
           # release — pin to the teacher (clap_audio_model.onnx) which is shipped.
           CLAP_AUDIO_MODEL_PATH = "${cfg.modelsPackage}/models/clap_audio_model.onnx";
           CLAP_TEXT_MODEL_PATH = "${cfg.modelsPackage}/models/clap_text_model.onnx";
+          
           # Lyrics models extracted into models/
-          LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
+          #LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
           HF_HOME = "${cfg.modelsPackage}/cache/huggingface";
           HF_HUB_OFFLINE = "1";
           TRANSFORMERS_OFFLINE = "1";
