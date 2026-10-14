@@ -239,6 +239,7 @@ in
           CLAP_SAE_ENCODER_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_encoder.onnx";
           NEURAL_FINGERPRINT_MODEL_PATH = "${cfg.modelsPackage}/models/neural_fingerprint.onnx"; 
           NEURAL_FINGERPRINT_CODEBOOK_PATH = "${cfg.modelsPackage}/models/neural_fingerprint_pq.npz";
+          LYRICS_GTE_ONNX_PATH = "${cfg.modelsPackage}/models/gte-multilingual-base-int8.onnx"; 
   
           # Lyrics models extracted into models/
           LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
