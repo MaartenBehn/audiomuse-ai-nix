@@ -114,13 +114,13 @@ in
   # AudioMuse-AI - Music analysis and playlist generation service
   audiomuse-ai = final.stdenvNoCC.mkDerivation rec {
     pname = "audiomuse-ai";
-    version = "2.1.0";
+    version = "3.6.3";
 
     src = final.fetchFromGitHub {
       owner = "NeptuneHub";
       repo = "AudioMuse-AI";
       rev = "v${version}";
-      hash = "sha256-EOHjsolE2Ae9z7z5A1E6Cq/pfP8SX7nQ6aKcHlel8F0=";
+      hash = "sha256-UX1hSChAAwtRJnbouDHjlNcGP3vyUiaC9q1wEKuB6HA=";
     };
 
     nativeBuildInputs = [ final.makeWrapper ];
@@ -131,18 +131,6 @@ in
     ];
 
     postPatch = ''
-      # TEMP_DIR is still hardcoded upstream — make it env-driven so the systemd
-      # service can point at $DATA_DIR/temp_audio instead of /app/temp_audio
-      substituteInPlace config.py \
-        --replace-fail 'TEMP_DIR = "/app/temp_audio"  # Always use /app/temp_audio' \
-                       'TEMP_DIR = os.environ.get("TEMP_DIR", "/tmp/audiomuse-temp")'
-
-      # CLAP Conv fallback: EXHAUSTIVE algo search + relaxed memory arena
-      substituteInPlace tasks/clap_analyzer.py \
-        --replace-fail "'cudnn_conv_algo_search': 'DEFAULT'" \
-                       "'cudnn_conv_algo_search': 'EXHAUSTIVE'" \
-        --replace-fail "'arena_extend_strategy': 'kSameAsRequested'" \
-                       "'arena_extend_strategy': 'kNextPowerOfTwo'"
     '';
 
     installPhase = ''
