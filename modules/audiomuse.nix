@@ -168,10 +168,9 @@ in
       enable = mkEnableOption "Use Auth";
       user = mkOption {
         type = types.str;
+        description = "Login User";
       };
-
-      
-    }
+    };
   };
 
   config = mkIf cfg.enable {
@@ -214,6 +213,12 @@ in
           POSTGRES_HOST = cfg.database.host;
           POSTGRES_PORT = toString cfg.database.port;
           POSTGRES_DB = cfg.database.name;
+
+          AUTH_ENABLED = toString cfg.auth.enable; 
+
+        } // lib.optionalAttrs cfg.auth.enable {
+          AUDIOMUSE_USER = cfg.auth.user;
+        } // {
 
           MEDIASERVER_TYPE = lib.mkIf cfg.mediaServer.jellyfin.enable "jellyfin";
           JELLYFIN_URL = cfg.mediaServer.jellyfin.url;
