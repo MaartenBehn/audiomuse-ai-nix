@@ -192,11 +192,11 @@ in
 
     fingerprint = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/neural_fingerprint.onnx";
-      hash = "sha256-F4YEA/j8kK/4rAYyoHQeteWNjAsK0vzlztlnJ0sOqXE=";
+      hash = "sha256-tlgU2qfafXw96JQlCTbbbkNj94vUHjEPRZfdybRvKVs=";
     };
     fingerprint_pq = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/neural_fingerprint_pq.npz";
-      hash = "sha256-DU543UPGEK7IjAmeQfSolpeX2lrCYS6myiH6qeGkKPM=";
+      hash = "sha256-iLGmb945pBaHTFGB6OSEI19iGl3GNw8FWVkQ4KMz7Do=";
     };
 
     huggingface_models = final.fetchurl {
