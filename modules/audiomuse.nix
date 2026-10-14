@@ -205,20 +205,21 @@ in
     systemd.services =
       let
         commonEnv = {
-          FLASK_BUILTIN_HTTPS = toString false;
+          FLASK_BUILTIN_HTTPS = "false";
 
           # Database - use unix socket for NixOS peer auth
-          POSTGRES_USER =  cfg.database.user;
+          POSTGRES_USER = cfg.database.user;
           POSTGRES_PASSWORD = ""; 
           POSTGRES_HOST = cfg.database.host;
           POSTGRES_PORT = toString cfg.database.port;
           POSTGRES_DB = cfg.database.name;
 
-          AUTH_ENABLED = toString cfg.auth.enable; 
-
-        } // lib.optionalAttrs cfg.auth.enable {
+        } (if lib.optionalAttrs cfg.auth.enable then {
+          AUTH_ENABLED = "true"; 
           AUDIOMUSE_USER = cfg.auth.user;
-        } // {
+        } else {
+          AUTH_ENABLED = "false"; 
+        }) // {
 
           MEDIASERVER_TYPE = lib.mkIf cfg.mediaServer.jellyfin.enable "jellyfin";
           JELLYFIN_URL = cfg.mediaServer.jellyfin.url;
