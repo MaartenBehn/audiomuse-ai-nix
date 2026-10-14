@@ -40,6 +40,7 @@ let
     flask
     flask-cors
     flasgger
+    gunicorn
 
     # Task queue
     redis
@@ -47,6 +48,7 @@ let
 
     # Database
     psycopg2
+    sqlglot
 
     # Audio processing
     librosa
@@ -54,6 +56,7 @@ let
     resampy
     pydub
     mutagen
+    av
 
     # ML/Scientific
     numpy
@@ -63,6 +66,7 @@ let
     umap-learn
     transformers
     sentencepiece
+    tqdm
 
     # ONNX
     onnx
@@ -76,6 +80,17 @@ let
     packaging
     protobuf
     httpx
+    psutil
+    zstandard
+
+    # Auth & Security
+    argon2-cffi
+    pyjwt
+
+    # Integrations & Language
+    langdetect
+    python-mpd2
+    wn
 
     # LLM integrations
     google-genai
