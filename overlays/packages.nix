@@ -192,7 +192,7 @@ in
 
     fingerprint = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/neural_fingerprint.onnx";
-      hash = "sha256-DU543UPGEK7IjAmeQfSolpeX2lrCYS6myiH6qeGkKPM=";
+      hash = "sha256-F4YEA/j8kK/4rAYyoHQeteWNjAsK0vzlztlnJ0sOqXE=";
     };
     fingerprint_pq = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/neural_fingerprint_pq.npz";
@@ -206,11 +206,11 @@ in
 
     clap_audio = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI-DCLAP/releases/download/v1/model_epoch_36.onnx";
-      hash = "sha256-NBjHoJd4fIYzxlkQ/jVXcHHnMIS9LO6t7BnI+mC7KXY=";
+      hash = "sha256-F4YEA/j8kK/4rAYyoHQeteWNjAsK0vzlztlnJ0sOqXE=";
     };
     clap_audio_data = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI-DCLAP/releases/download/v1/model_epoch_36.onnx.data";
-      hash = "sha256-NBjHoJd4fIYzxlkQ/jVXcHHnMIS9LO6t7BnI+mC7KXY=";
+      hash = "sha256-KnNbI8Kq17Etn/yFM0zrzGWcB2ltL/YOLjeNoott9lc=";
     };
 
     clap_text = final.fetchurl {
@@ -220,27 +220,27 @@ in
 
     sea_encode = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI-SAE/releases/download/v1/dclap_sae_k20_d1024_best_encoder.onnx";
-      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+      hash = "sha256-2BcjzH0UVmBX6LGZ8rxOo+oeLKenlSmkDz/NU5n5dvY=";
     };
 
     sea_decode = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI-SAE/releases/download/v1/dclap_sae_k20_d1024_best_decoder.onnx";
-      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+      hash = "sha256-exbuBseYEGZK6gJuK20ptl22jXVth77oioVaHiz/y/Y=";
     };
 
     whisper_models = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/lyrics_model_whisper.tar.gz";
-      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+      hash = "sha256-+p9IJeGpGDlMGmOwy3ykOrHfi+kDVa0D56+V7j0/FRE=";
     };
 
     silero_models = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/lyrics_model_silero_vad.tar.gz";
-      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+      hash = "sha256-ZeXlw9e/XlvHxHv0K7vmadv6FZVDvUdeDCPO06p6w7Q=";
     };
 
     gte_models = final.fetchurl {
       url = "https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model/lyrics_model_gte_vnni.tar.gz";
-      hash = "sha256-IA1I85Bf8fJyr1AG3ZhR+UBxp93k6v2cB7wJxaxlpxQ=";
+      hash = "sha256-X4pJyHPHYvAajaeQ9B+Z29qsbx8g1MCi26QHzMYMx8w=";
     };
     
     nativeBuildInputs = [ final.gnutar final.gzip ];
