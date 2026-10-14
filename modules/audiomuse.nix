@@ -186,11 +186,11 @@ in
           FLASK_PORT = toString cfg.port;
 
           # Database - use unix socket for NixOS peer auth
-          DATABASE_HOST = cfg.database.host;
-          DATABASE_PORT = toString cfg.database.port;
-          DATABASE_NAME = cfg.database.name;
-          DATABASE_USER = cfg.database.user;
-          DATABASE_URL = "postgresql://${cfg.database.user}@/${cfg.database.name}?host=/run/postgresql";
+          POSTGRES_USER =  cfg.database.user;
+          POSTGRES_PASSWORD = ""; 
+          POSTGRES_HOST = cfg.database.host;
+          POSTGRES_PORT = toString cfg.database.port;
+          POSTGRES_DB =  cfg.database.name;
 
           # Redis
           REDIS_HOST = cfg.redis.host;
