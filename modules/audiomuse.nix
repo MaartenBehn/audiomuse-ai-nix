@@ -181,9 +181,8 @@ in
     systemd.services =
       let
         commonEnv = {
-          # Flask settings
-          FLASK_HOST = cfg.host;
-          FLASK_PORT = toString cfg.port;
+          AUDIOMUSE_CONTROL_HOST = cfg.host;
+          AUDIOMUSE_CONTROL_PORT = toString cfg.port;
 
           # Database - use unix socket for NixOS peer auth
           POSTGRES_USER =  cfg.database.user;
