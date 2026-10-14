@@ -150,8 +150,28 @@ in
           default = "http://127.0.0.1:8096";
           description = "http://YOUR_JELLYFIN_IP:8096";
         };
+
+        userId = mkOption {
+          type = lib.types.nullOr types.str;
+          default = null;
+          description = "Jellyfin User Id";
+        };
+
+        libaries = mkOption {
+          type = types.listOf types.str;
+          default = [];
+        }; 
       };
     };
+
+    auth = {
+      enable = mkEnableOption "Use Auth";
+      user = mkOption {
+        type = types.str;
+      };
+
+      
+    }
   };
 
   config = mkIf cfg.enable {
@@ -166,14 +186,7 @@ in
         }
       ];
     };
-
-    # Redis for job queue (separate from other Redis instances)
-    services.redis.servers.audiomuse = {
-      enable = true;
-      port = cfg.redis.port;
-      bind = cfg.redis.host;
-    };
-
+    
     # Create data directory
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
@@ -204,11 +217,8 @@ in
 
           MEDIASERVER_TYPE = lib.mkIf cfg.mediaServer.jellyfin.enable "jellyfin";
           JELLYFIN_URL = cfg.mediaServer.jellyfin.url;
-
-          # Redis
-          REDIS_HOST = cfg.redis.host;
-          REDIS_PORT = toString cfg.redis.port;
-          REDIS_URL = "redis://${cfg.redis.host}:${toString cfg.redis.port}";
+          JELLYFIN_USER_ID = lib.mkIf (cfg.mediaServer.jellyfin.userId != null) cfg.mediaServer.jellyfin.userId;
+          MUSIC_LIBRARIES = lib.concatStringsSep "," cfg.mediaServer.jellyfin.libaries;
 
           # Paths
           DATA_DIR = cfg.dataDir;
