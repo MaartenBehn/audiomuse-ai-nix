@@ -268,6 +268,24 @@ in
     };
   });
 
+  # anyio, rq, and watchfiles test suites fail in the sandbox / with Python 3.12.15
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (python-final: python-prev: final.lib.optionalAttrs (python-prev.isPy312 or false) {
+      anyio = python-prev.anyio.overridePythonAttrs (old: {
+        doCheck = false;
+        doInstallCheck = false;
+      });
+      rq = python-prev.rq.overridePythonAttrs (old: {
+        doCheck = false;
+        doInstallCheck = false;
+      });
+      watchfiles = python-prev.watchfiles.overridePythonAttrs (old: {
+        doCheck = false;
+        doInstallCheck = false;
+      });
+    })
+  ];
+
   # Valkey (Redis fork) has flaky cluster/replication tests — skip them
   valkey = prev.valkey.overrideAttrs (old: { doCheck = false; });
 }
