@@ -149,13 +149,15 @@ in
 
       # RQ Worker
       makeWrapper ${audiomuse-ai-python}/bin/python $out/bin/audiomuse-ai-worker \
-        --add-flags "$out/lib/audiomuse-ai/rq_worker.py" \
+        --add-flags "$out/lib/audiomuse-ai/taskqueue/worker.py" \
+        --add-flags "--queue default" \
         --prefix PATH : ${final.lib.makeBinPath [ final.ffmpeg ]} \
         --set PYTHONPATH "$out/lib/audiomuse-ai"
 
       # High-priority RQ Worker
       makeWrapper ${audiomuse-ai-python}/bin/python $out/bin/audiomuse-ai-worker-high \
-        --add-flags "$out/lib/audiomuse-ai/rq_worker_high_priority.py" \
+        --add-flags "$out/lib/audiomuse-ai/taskqueue/worker.py" \
+        --add-flags "--queue high" \
         --prefix PATH : ${final.lib.makeBinPath [ final.ffmpeg ]} \
         --set PYTHONPATH "$out/lib/audiomuse-ai"
 
