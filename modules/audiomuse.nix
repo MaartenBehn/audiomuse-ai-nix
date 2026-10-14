@@ -214,7 +214,7 @@ in
           POSTGRES_PORT = toString cfg.database.port;
           POSTGRES_DB = cfg.database.name;
 
-        } (if cfg.auth.enable then {
+        } // (if cfg.auth.enable then {
           AUTH_ENABLED = "true"; 
           AUDIOMUSE_USER = cfg.auth.user;
         } else {
