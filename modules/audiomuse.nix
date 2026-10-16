@@ -245,6 +245,12 @@ in
           HF_HOME = "${cfg.modelsPackage}/cache/huggingface";
           HF_HUB_OFFLINE = "1";
           TRANSFORMERS_OFFLINE = "1";
+
+          PYTHONFAULTHANDLER = "1";
+          
+          # I had a problem where after a nixpkgs upgrade the analysis worker segfaults in librosa/numba so we use a clean cache dir for every version.
+          NUMBA_CACHE_DIR = "/var/lib/audiomuse-ai/numba-cache/${builtins.baseNameOf (toString audiomuse-pkgs.audiomuse-ai)}";
+
         } // lib.optionalAttrs cfg.gpu.enable {
           # GPU performance tuning
           PER_SONG_MODEL_RELOAD = "false";  # Keep models loaded, recycle every 20 songs
