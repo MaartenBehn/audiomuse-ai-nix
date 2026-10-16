@@ -43,7 +43,6 @@ let
     gunicorn
 
     # Task queue
-    redis
     rq
 
     # Database
@@ -323,7 +322,4 @@ in
       });
     })
   ];
-
-  # Valkey (Redis fork) has flaky cluster/replication tests — skip them
-  valkey = prev.valkey.overrideAttrs (old: { doCheck = false; });
 }

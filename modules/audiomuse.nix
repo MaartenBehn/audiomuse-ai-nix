@@ -7,6 +7,96 @@
 with lib;
 let
   cfg = config.services.audiomuse-ai;
+  
+  # A helper to generate the numbered default workers list
+  defaultWorkerServices = listToAttrs (
+    genList (i:
+      let
+        workerNum = toString (i + 1);
+        serviceName = "audiomuse-ai-worker-${workerNum}";
+      in {
+        name = serviceName;
+        value = {
+          description = "AudioMuse-AI RQ Worker ${workerNum}";
+          after = [
+            "audiomuse-ai.service"
+          ];
+          wantedBy = [ "multi-user.target" ];
+
+          environment = commonEnv;
+
+          serviceConfig = commonServiceConfig // {
+            ExecStart = "${cfg.package}/bin/audiomuse-ai-worker";
+          };
+        };
+      }
+    ) cfg.workers.count
+  );
+
+  # Common environment and service config definitions need to be accessible 
+  # inside the let binding or defined before use. Here is the refactored layout:
+  commonEnv = {
+    # Database - use unix socket for NixOS peer auth
+    POSTGRES_USER = cfg.database.user;
+    POSTGRES_PASSWORD = ""; 
+    POSTGRES_HOST = cfg.database.host;
+    POSTGRES_PORT = toString cfg.database.port;
+    POSTGRES_DB = cfg.database.name;
+    
+    # Paths
+    DATA_DIR = cfg.dataDir;
+    TEMP_DIR = "${cfg.dataDir}/temp_audio";
+
+    MODELS_PATH = "${cfg.modelsPackage}/models";
+    EMBEDDING_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_embedding.onnx";
+    PREDICTION_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_prediction.onnx";
+    CLAP_AUDIO_MODEL_PATH = "${cfg.modelsPackage}/models/clap_audio_model.onnx";
+    CLAP_TEXT_MODEL_PATH = "${cfg.modelsPackage}/models/clap_text_model.onnx";
+    CLAP_SAE_MODEL_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_decoder.onnx";
+    CLAP_SAE_ENCODER_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_encoder.onnx";
+    NEURAL_FINGERPRINT_MODEL_PATH = "${cfg.modelsPackage}/models/neural_fingerprint.onnx"; 
+    NEURAL_FINGERPRINT_CODEBOOK_PATH = "${cfg.modelsPackage}/models/neural_fingerprint_pq.npz";
+    LYRICS_GTE_ONNX_PATH = "${cfg.modelsPackage}/models/gte-multilingual-base-int8.onnx";
+    LYRICS_GTE_TOKENIZER_DIR = "${cfg.modelsPackage}/models/gte-multilingual-base"; 
+    LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
+    HF_HOME = "${cfg.modelsPackage}/cache/huggingface";
+    HF_HUB_OFFLINE = "1";
+    TRANSFORMERS_OFFLINE = "1";
+
+    PYTHONFAULTHANDLER = "1";
+    
+    # Clean cache dir for every package version update
+    NUMBA_CACHE_DIR = "/var/lib/audiomuse-ai/numba-cache/${builtins.baseNameOf (toString cfg.package)}";
+
+  } // lib.optionalAttrs cfg.gpu.enable {
+    PER_SONG_MODEL_RELOAD = "false";
+    CLAP_MINI_BATCH_SIZE = "8";
+  } // cfg.extraEnvironment;
+
+  commonServiceConfig = {
+    User = cfg.user;
+    Group = cfg.group;
+    WorkingDirectory = cfg.dataDir;
+    Restart = "always";
+    RestartSec = 5;
+
+    NoNewPrivileges = true;
+    ProtectSystem = "strict";
+    ProtectHome = true;
+    PrivateTmp = true;
+    ReadWritePaths = [ cfg.dataDir ];
+    ReadOnlyPaths = [
+      cfg.musicDir
+      "${cfg.modelsPackage}"
+    ] ++ lib.optionals cfg.gpu.enable [
+      "/run/opengl-driver"
+    ];
+  } // lib.optionalAttrs cfg.gpu.enable {
+    DeviceAllow = map (dev: "${dev} rw") cfg.gpu.devices;
+    SupplementaryGroups = [ "video" "render" ];
+  } // lib.optionalAttrs (cfg.environmentFile != null) {
+    EnvironmentFile = cfg.environmentFile;
+  };
 in
 {
   options.services.audiomuse-ai = {
@@ -125,52 +215,7 @@ in
       type = types.attrsOf types.str;
       default = { };
       description = "Extra environment variables to set for all AudioMuse-AI services";
-    };
-
-    redis = {
-      host = mkOption {
-        type = types.str;
-        default = "localhost";
-        description = "Redis host for job queue";
-      };
-
-      port = mkOption {
-        type = types.port;
-        default = 6380;
-        description = "Redis port for job queue";
-      };
-    };
-
-    mediaServer = {
-      jellyfin = {
-        enable = mkEnableOption "Use Jellyfin as Media server";
-
-        url = mkOption {
-          type = types.str;
-          default = "http://127.0.0.1:8096";
-          description = "http://YOUR_JELLYFIN_IP:8096";
-        };
-
-        userId = mkOption {
-          type = lib.types.nullOr types.str;
-          default = null;
-          description = "Jellyfin User Id";
-        };
-
-        libaries = mkOption {
-          type = types.listOf types.str;
-          default = [];
-        }; 
-      };
-    };
-
-    auth = {
-      enable = mkEnableOption "Use Auth";
-      user = mkOption {
-        type = types.str;
-        description = "Login User";
-      };
-    };
+    };  
   };
 
   config = mkIf cfg.enable {
@@ -201,162 +246,42 @@ in
     };
     users.groups.${cfg.group} = mkIf (cfg.group == "audiomuse") { };
 
-    # Environment variables for all AudioMuse services
-    systemd.services =
-      let
-        commonEnv = {
-          FLASK_BUILTIN_HTTPS = "false";
+    # Systemd services
+    systemd.services = (rec {
+      # Main Flask API server
+      audiomuse-ai = {
+        description = "AudioMuse-AI Music Analysis API";
+        after = [
+          "network.target"
+          "postgresql.service"
+        ];
+        wants = [
+          "postgresql.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
 
-          # Database - use unix socket for NixOS peer auth
-          POSTGRES_USER = cfg.database.user;
-          POSTGRES_PASSWORD = ""; 
-          POSTGRES_HOST = cfg.database.host;
-          POSTGRES_PORT = toString cfg.database.port;
-          POSTGRES_DB = cfg.database.name;
+        environment = commonEnv;
 
-        } // (if cfg.auth.enable then {
-          AUTH_ENABLED = "true"; 
-          AUDIOMUSE_USER = cfg.auth.user;
-        } else {
-          AUTH_ENABLED = "false"; 
-        }) // {
-
-          MEDIASERVER_TYPE = lib.mkIf cfg.mediaServer.jellyfin.enable "jellyfin";
-          JELLYFIN_URL = cfg.mediaServer.jellyfin.url;
-          JELLYFIN_USER_ID = lib.mkIf (cfg.mediaServer.jellyfin.userId != null) cfg.mediaServer.jellyfin.userId;
-          MUSIC_LIBRARIES = lib.concatStringsSep "," cfg.mediaServer.jellyfin.libaries;
-
-          # Paths
-          DATA_DIR = cfg.dataDir;
-          TEMP_DIR = "${cfg.dataDir}/temp_audio";
-
-          MODELS_PATH = "${cfg.modelsPackage}/models";
-          EMBEDDING_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_embedding.onnx";
-          PREDICTION_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_prediction.onnx";
-          CLAP_AUDIO_MODEL_PATH = "${cfg.modelsPackage}/models/clap_audio_model.onnx";
-          CLAP_TEXT_MODEL_PATH = "${cfg.modelsPackage}/models/clap_text_model.onnx";
-          CLAP_SAE_MODEL_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_decoder.onnx";
-          CLAP_SAE_ENCODER_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_encoder.onnx";
-          NEURAL_FINGERPRINT_MODEL_PATH = "${cfg.modelsPackage}/models/neural_fingerprint.onnx"; 
-          NEURAL_FINGERPRINT_CODEBOOK_PATH = "${cfg.modelsPackage}/models/neural_fingerprint_pq.npz";
-          LYRICS_GTE_ONNX_PATH = "${cfg.modelsPackage}/models/gte-multilingual-base-int8.onnx";
-          LYRICS_GTE_TOKENIZER_DIR = "${cfg.modelsPackage}/models/gte-multilingual-base"; 
-          LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
-          HF_HOME = "${cfg.modelsPackage}/cache/huggingface";
-          HF_HUB_OFFLINE = "1";
-          TRANSFORMERS_OFFLINE = "1";
-
-          PYTHONFAULTHANDLER = "1";
-          
-          # I had a problem where after a nixpkgs upgrade the analysis worker segfaults in librosa/numba so we use a clean cache dir for every version.
-          NUMBA_CACHE_DIR = "/var/lib/audiomuse-ai/numba-cache/${builtins.baseNameOf (toString audiomuse-pkgs.audiomuse-ai)}";
-
-        } // lib.optionalAttrs cfg.gpu.enable {
-          # GPU performance tuning
-          PER_SONG_MODEL_RELOAD = "false";  # Keep models loaded, recycle every 20 songs
-          CLAP_MINI_BATCH_SIZE = "8";       # Process 8 segments at once
-        } // cfg.extraEnvironment;
-
-        commonServiceConfig = {
-          User = cfg.user;
-          Group = cfg.group;
-          WorkingDirectory = cfg.dataDir;
-          Restart = "always";
-          RestartSec = 5;
-
-          # Security hardening
-          NoNewPrivileges = true;
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          PrivateTmp = true;
-          ReadWritePaths = [ cfg.dataDir ];
-          ReadOnlyPaths = [
-            cfg.musicDir
-            "${cfg.modelsPackage}"
-          ] ++ lib.optionals cfg.gpu.enable [
-            "/run/opengl-driver"
-          ];
-        } // lib.optionalAttrs cfg.gpu.enable {
-          # GPU access for RAPIDS cuML
-          DeviceAllow = map (dev: "${dev} rw") cfg.gpu.devices;
-          SupplementaryGroups = [ "video" "render" ];
-        } // lib.optionalAttrs (cfg.environmentFile != null) {
-          EnvironmentFile = cfg.environmentFile;
-        };
-      in
-      {
-        # Main Flask API server
-        audiomuse-ai = {
-          description = "AudioMuse-AI Music Analysis API";
-          after = [
-            "network.target"
-            "postgresql.service"
-            "redis-audiomuse.service"
-          ];
-          wants = [
-            "postgresql.service"
-            "redis-audiomuse.service"
-          ];
-          wantedBy = [ "multi-user.target" ];
-
-          environment = commonEnv;
-
-          serviceConfig = commonServiceConfig // {
-            ExecStart = "${cfg.package}/bin/audiomuse-ai";
-          };
-        };
-
-        # RQ Worker (default priority)
-        audiomuse-ai-worker = {
-          description = "AudioMuse-AI RQ Worker";
-          after = [
-            "audiomuse-ai.service"
-            "redis-audiomuse.service"
-          ];
-          wants = [ "redis-audiomuse.service" ];
-          wantedBy = [ "multi-user.target" ];
-
-          environment = commonEnv;
-
-          serviceConfig = commonServiceConfig // {
-            ExecStart = "${cfg.package}/bin/audiomuse-ai-worker";
-          };
-        };
-
-        # RQ Worker (default priority, instance 2)
-        "audiomuse-ai-worker-2" = {
-          description = "AudioMuse-AI RQ Worker 2";
-          after = [
-            "audiomuse-ai.service"
-            "redis-audiomuse.service"
-          ];
-          wants = [ "redis-audiomuse.service" ];
-          wantedBy = [ "multi-user.target" ];
-
-          environment = commonEnv;
-
-          serviceConfig = commonServiceConfig // {
-            ExecStart = "${cfg.package}/bin/audiomuse-ai-worker";
-          };
-        };
-
-        # RQ Worker (high priority)
-        audiomuse-ai-worker-high = {
-          description = "AudioMuse-AI RQ Worker (High Priority)";
-          after = [
-            "audiomuse-ai.service"
-            "redis-audiomuse.service"
-          ];
-          wants = [ "redis-audiomuse.service" ];
-          wantedBy = [ "multi-user.target" ];
-
-          environment = commonEnv;
-
-          serviceConfig = commonServiceConfig // {
-            ExecStart = "${cfg.package}/bin/audiomuse-ai-worker-high";
-          };
+        serviceConfig = commonServiceConfig // {
+          ExecStart = "${cfg.package}/bin/audiomuse-ai";
         };
       };
+
+      # RQ Worker (high priority)
+      audiomuse-ai-worker-high = {
+        description = "AudioMuse-AI RQ Worker (High Priority)";
+        after = [
+          "audiomuse-ai.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+
+        environment = commonEnv;
+
+        serviceConfig = commonServiceConfig // {
+          ExecStart = "${cfg.package}/bin/audiomuse-ai-worker-high";
+        };
+      };
+    }) // defaultWorkerServices;
 
     # Firewall
     networking.firewall.allowedTCPPorts = mkIf (cfg.host == "0.0.0.0") [ cfg.port ];
