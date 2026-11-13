@@ -1,0 +1,6 @@
+{
+  "id": "beets_export",
+  "name": "Beets Metadata Export",
+  "author": "Maarten Behn",
+  "description": "Export AudioMuse-AI analyzed metadata directly to Beets."
+}

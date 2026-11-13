@@ -7,6 +7,68 @@
 with lib;
 let
   cfg = config.services.audiomuse-ai;
+
+  pluginsRoot = pkgs.runCommand "audiomuse-plugins-served" {
+    nativeBuildInputs = [ pkgs.zip pkgs.jq pkgs.coreutils ];
+  } ''
+    mkdir -p $out
+
+    PLUGINS_JSON="[]"
+
+    for plugin_dir in ${../plugins}/*/; do
+      plugin_dir="''${plugin_dir%/}"
+      echo "$plugin_dir"
+      # Read metadata from plugin.json
+      PLUGIN_ID=$(jq -r '.id // "'"$plugin_dir"'"' "$plugin_dir/plugin.json")
+      PLUGIN_NAME=$(jq -r '.name // "'"$plugin_dir"'"' "$plugin_dir/plugin.json")
+      PLUGIN_AUTHOR=$(jq -r '.author // "Unknown"' "$plugin_dir/plugin.json")
+      PLUGIN_DESC=$(jq -r '.description // ""' "$plugin_dir/plugin.json")
+
+      # Zip the plugin contents directly into the output directory
+      ZIP_NAME="''${PLUGIN_ID}_1.0.0.zip"
+      echo "$ZIP_NAME"
+      (
+        cd "$plugin_dir"
+        zip -r "$out/$ZIP_NAME" . > /dev/null
+      )
+      echo "zip done"
+
+      # Compute SHA-256 checksum for the zip file
+      SOURCE_URL="http://127.0.0.1:${toString cfg.plugins.port}/''${ZIP_NAME}"
+      echo "$SOURCE_URL"
+
+      # Construct the plugin JSON entry
+      PLUGIN_JSON=$(jq -n \
+        --arg id "$PLUGIN_ID" \
+        --arg name "$PLUGIN_NAME" \
+        --arg author "$PLUGIN_AUTHOR" \
+        --arg desc "$PLUGIN_DESC" \
+        --arg source_url "$SOURCE_URL" \
+        '{
+          id: $id,
+          name: $name,
+          author: $author,
+          description: $desc,
+        versions: [
+          {
+            version: "1.0.0",
+            min_core_version: "3.0.0",
+            changelog: "",
+            imageUrl: "",
+            sourceUrl: $source_url,
+          }
+          ]
+        }')
+
+      echo "$PLUGIN_JSON"
+
+      # Append to the plugins array
+      PLUGINS_JSON=$(echo "$PLUGINS_JSON" | jq --argjson p "$PLUGIN_JSON" '. + [$p]')
+    done
+
+    # Write the complete repository manifest.json
+    jq -n --argjson plugins "$PLUGINS_JSON" '{plugins: $plugins}' > $out/manifest.json
+  '';
   
   # A helper to generate the numbered default workers list
   defaultWorkerServices = listToAttrs (
@@ -23,6 +85,7 @@ let
           ];
           wantedBy = [ "multi-user.target" ];
 
+          path = with pkgs; [ ffmpeg chromaprint ] ++ (if cfg.plugins.enable then [ cfg.plugins.beets_package ] else []);
           environment = commonEnv;
 
           serviceConfig = commonServiceConfig // {
@@ -46,24 +109,27 @@ let
     # Paths
     DATA_DIR = cfg.dataDir;
     TEMP_DIR = "${cfg.dataDir}/temp_audio";
+    PLUGINS_DIR = "${cfg.dataDir}/plugins";
 
-    MODELS_PATH = "${cfg.modelsPackage}/models";
-    LYRICS_MODEL_DIR = "${cfg.modelsPackage}/models";
-    LYRICS_GTE_TOKENIZER_DIR = "${cfg.modelsPackage}/models/gte-multilingual-base"; 
-    EMBEDDING_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_embedding.onnx";
-    PREDICTION_MODEL_PATH = "${cfg.modelsPackage}/models/musicnn_prediction.onnx";
-    CLAP_AUDIO_MODEL_PATH = "${cfg.modelsPackage}/models/clap_audio_model.onnx";
-    CLAP_TEXT_MODEL_PATH = "${cfg.modelsPackage}/models/clap_text_model.onnx";
-    CLAP_SAE_MODEL_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_decoder.onnx";
-    CLAP_SAE_ENCODER_PATH = "${cfg.modelsPackage}/models/dclap_sae_k20_d1024_best_encoder.onnx";
-    NEURAL_FINGERPRINT_MODEL_PATH = "${cfg.modelsPackage}/models/neural_fingerprint.onnx"; 
-    NEURAL_FINGERPRINT_CODEBOOK_PATH = "${cfg.modelsPackage}/models/neural_fingerprint_pq.npz";
-    LYRICS_GTE_ONNX_PATH = "${cfg.modelsPackage}/models/gte-multilingual-base-int8.onnx";
-    SILERO_VAD_ONNX_PATH = "${cfg.modelsPackage}/models/silero_vad.onnx"; 
-    HF_HOME = "${cfg.modelsPackage}/cache/huggingface";
+    MODELS_PATH = "${cfg.dataDir}/models";
+    LYRICS_MODEL_DIR = "${cfg.dataDir}/models";
+    LYRICS_GTE_TOKENIZER_DIR = "${cfg.dataDir}/models/gte-multilingual-base"; 
+    EMBEDDING_MODEL_PATH = "${cfg.dataDir}/models/musicnn_embedding.onnx";
+    PREDICTION_MODEL_PATH = "${cfg.dataDir}/models/musicnn_prediction.onnx";
+    CLAP_AUDIO_MODEL_PATH = "${cfg.dataDir}/models/model_epoch_36.onnx";
+    CLAP_TEXT_MODEL_PATH = "${cfg.dataDir}/models/clap_text_model.onnx";
+    CLAP_SAE_MODEL_PATH = "${cfg.dataDir}/models/dclap_sae_k20_d1024_best_decoder.onnx";
+    CLAP_SAE_ENCODER_PATH = "${cfg.dataDir}/models/dclap_sae_k20_d1024_best_encoder.onnx";
+    NEURAL_FINGERPRINT_MODEL_PATH = "${cfg.dataDir}/models/neural_fingerprint.onnx"; 
+    NEURAL_FINGERPRINT_CODEBOOK_PATH = "${cfg.dataDir}/models/neural_fingerprint_pq.npz";
+    LYRICS_GTE_ONNX_PATH = "${cfg.dataDir}/models/gte-multilingual-base-int8.onnx";
+    SILERO_VAD_ONNX_PATH = "${cfg.dataDir}/models/silero_vad.onnx"; 
+    
+    HF_HOME = "${cfg.dataDir}/.cache/huggingface";
+    CLAP_TEXT_EMBEDDINGS_CACHE_PATH = "${cfg.dataDir}/.cache/clap_other_feature_text_embeddings.npz";
+    
     HF_HUB_OFFLINE = "1";
     TRANSFORMERS_OFFLINE = "1";
-
     PYTHONFAULTHANDLER = "1";
     
     # Clean cache dir for every package version update
@@ -85,7 +151,11 @@ let
     ProtectSystem = "strict";
     ProtectHome = true;
     PrivateTmp = true;
-    ReadWritePaths = [ cfg.dataDir ];
+    ReadWritePaths = [ 
+      cfg.dataDir 
+      cfg.musicDir
+      "/var/lib/beets"
+    ];
     ReadOnlyPaths = [
       cfg.musicDir
       "${cfg.modelsPackage}"
@@ -216,10 +286,26 @@ in
       type = types.attrsOf types.str;
       default = { };
       description = "Extra environment variables to set for all AudioMuse-AI services";
-    };  
-  };
+    }; 
 
+    plugins = {
+      enable = mkEnableOption "Enable serving the plugins folder locally"; 
+      port = mkOption {
+        type = types.port;
+        default = 8001;
+        description = "Port for the plugins served locally";
+      };
+      beets_package = mkOption {
+        type = types.package;
+        default = pkgs.beets;
+        defaultText = literalExpression "pkgs.beets";
+        description = "The beets package to use";
+      };
+    };
+  };
+  
   config = mkIf cfg.enable {
+
     # PostgreSQL database
     services.postgresql = {
       enable = true;
@@ -236,6 +322,10 @@ in
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
       "d ${cfg.dataDir}/logs 0750 ${cfg.user} ${cfg.group} -"
+      "d ${cfg.dataDir}/plugins 0750 ${cfg.user} ${cfg.group} -"
+      "d ${cfg.dataDir}/.cache 0750 ${cfg.user} ${cfg.group} -"
+      "C+ ${cfg.dataDir}/.cache/huggingface 0750 ${cfg.user} ${cfg.group} - ${cfg.modelsPackage}/cache/huggingface"
+      "C+ ${cfg.dataDir}/models 0750 ${cfg.user} ${cfg.group} - ${cfg.modelsPackage}/models"
     ];
 
     # User and group
@@ -243,7 +333,7 @@ in
       isSystemUser = true;
       group = cfg.group;
       home = cfg.dataDir;
-      extraGroups = [ "jellyfin" ] ++ lib.optionals cfg.gpu.enable [ "video" "render" ];
+      extraGroups = lib.optionals cfg.gpu.enable [ "video" "render" ];
     };
     users.groups.${cfg.group} = mkIf (cfg.group == "audiomuse") { };
 
@@ -261,6 +351,7 @@ in
         ];
         wantedBy = [ "multi-user.target" ];
 
+        path = with pkgs; [ ffmpeg chromaprint ] ++ (if cfg.plugins.enable then [ cfg.plugins.beets_package ] else []);
         environment = commonEnv;
 
         serviceConfig = commonServiceConfig // {
@@ -276,6 +367,7 @@ in
         ];
         wantedBy = [ "multi-user.target" ];
 
+        path = with pkgs; [ ffmpeg chromaprint ];
         environment = commonEnv;
 
         serviceConfig = commonServiceConfig // {
@@ -285,6 +377,30 @@ in
     }) // defaultWorkerServices;
 
     # Firewall
-    networking.firewall.allowedTCPPorts = mkIf (cfg.host == "0.0.0.0") [ cfg.port ];
-  };
+    networking.firewall.allowedTCPPorts = (lib.optionals (cfg.host == "0.0.0.0") [ cfg.port ]);
+
+    services.nginx = mkIf cfg.plugins.enable {
+      enable = true;
+      virtualHosts."audiomuse-plugins" = {
+        listen = [
+          {
+            addr = "127.0.0.1";
+            port = cfg.plugins.port;
+          }
+        ];
+        root = pluginsRoot;
+
+        locations."/" = {
+          extraConfig = ''
+            # Allow AudioMuse-AI to fetch the manifest across ports/origins
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, OPTIONS";
+
+            # Enable directory listing for debugging if needed
+            autoindex on;
+          '';
+        };
+      };
+    };
+  }; 
 }

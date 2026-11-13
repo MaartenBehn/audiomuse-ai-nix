@@ -143,7 +143,6 @@ in
       # Main Flask app
       makeWrapper ${audiomuse-ai-python}/bin/python $out/bin/audiomuse-ai \
         --add-flags "$out/lib/audiomuse-ai/app.py" \
-        --prefix PATH : ${final.lib.makeBinPath [ final.ffmpeg final.chromaprint ]} \
         --set PYTHONPATH "$out/lib/audiomuse-ai"
 
       # Worker
@@ -151,7 +150,6 @@ in
         --add-flags "-m" \
         --add-flags "taskqueue.worker" \
         --add-flags "--queue default" \
-        --prefix PATH : ${final.lib.makeBinPath [ final.ffmpeg final.chromaprint ]} \
         --set PYTHONPATH "$out/lib/audiomuse-ai"
 
       # High-priority Worker
@@ -159,7 +157,6 @@ in
         --add-flags "-m" \
         --add-flags "taskqueue.worker" \
         --add-flags "--queue high" \
-        --prefix PATH : ${final.lib.makeBinPath [ final.ffmpeg final.chromaprint ]} \
         --set PYTHONPATH "$out/lib/audiomuse-ai"
 
       runHook postInstall
